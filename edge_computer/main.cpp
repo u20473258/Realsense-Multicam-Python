@@ -116,10 +116,15 @@ int main(int argc, char * argv[]) try
         return EXIT_FAILURE;
     }
 
+    // Disable auto exposure of the RGB camera to avoid the FPS drop so that depth 
+    // and color frames are captured at the same time (#2637)
+    auto sensor = devices[0].query_sensors()[1];
+    sensor.set_option(RS2_OPTION_AUTO_EXPOSURE_PRIORITY, 0);
+
     // Congifure the streaming configurations
     rs2::config cfg;
-    cfg.enable_stream(RS2_STREAM_DEPTH, 1280, 720, RS2_FORMAT_Z16, 15);
     cfg.enable_stream(RS2_STREAM_COLOR, 424, 240, RS2_FORMAT_RGB8, 15);
+    cfg.enable_stream(RS2_STREAM_DEPTH, 1280, 720, RS2_FORMAT_Z16, 15);
 
     // Create pipe and start it
     rs2::pipeline pipe;
