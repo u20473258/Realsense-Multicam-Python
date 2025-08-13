@@ -151,7 +151,7 @@ def receive_files_from_pis():
 
 
 if __name__ == "__main__":
-    parser=argparse.ArgumentParser(description="collect camera data")
+    parser=argparse.ArgumentParser(prog="Data Collector", description="message edge computer(s)")
     parser.add_argument("mode", choices=['capture', 'reboot'])
     parser.add_argument("--filename")
     parser.add_argument("--duration", choices=['1', '2', '5', '10', '15', '20', '25', '30', '60', '100'])
