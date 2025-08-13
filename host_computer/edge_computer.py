@@ -103,6 +103,10 @@ class EdgeComputer:
             return self.colour_frame_numbers
     
     
+    def get_frame_number(self, frame_number_index: int, data_type: str) -> int:
+        return self.depth_frame_numbers[frame_number_index] if data_type == "depth" else self.colour_frame_numbers[frame_number_index]
+    
+    
     def load_cam_intrinsics(self) -> list:
         """
         Loads the camera instrinsics from a .txt file.
