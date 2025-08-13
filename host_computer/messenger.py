@@ -4,6 +4,7 @@ import socket
 import time
 from flask import Flask, request, jsonify
 import argparse
+import csv
 
 # Initialise flask server
 app = Flask(__name__)
@@ -96,6 +97,41 @@ def receive_files():
     app.run(host='0.0.0.0', port=5000)
 
 
+def save_serial_to_csv(csv_name: str):
+    """ 
+    Extract serial numbers and store them in a excel sheet.
+    
+    Parameters
+    ----------
+    csv_name: str
+        Name of the csv file to store all serial information of all edge computers.
+    serial_info_folder: str
+        Folder name containing each edge computer's serial information csv files.
+    """
+    
+    # Delete previous uploads folder and then create a new one
+    if os.path.exists(csv_name):
+        os.remove(csv_name)
+    
+    csv_data = []
+    for filename in os.listdir("uploads"):
+        pi_name = filename.split("_")[0]
+        with open("uploads" + "/" + filename, "rb") as file:
+            # Ignore the first row, the data needed is in the second row
+            garbage = (file.readline()).decode("utf-8")
+            
+            # Extract the serial number by spliting based on whitespaces
+            serial = int(((file.readline()).decode("utf-8")).split(' ')[12])
+            
+            csv_data.append([pi_name, serial])
+    
+    # Write all data to csv file     
+    with open(csv_name, 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(["edge_computer", "serial_number"])
+        writer.writerows(csv_data)
+        
+
 
 if __name__ == "__main__":
     
@@ -109,10 +145,9 @@ if __name__ == "__main__":
                         type=str,
                         help="Mode of operation: 'capture' to capture images, 'setup' to setup edge computers: ensure NTP and serial numbers, 'reboot' to reboot the edge computers.")
     
-    # Get the folder name to save the captured data
+    # Get the folder name to save the captured data. Uploads is an invalid name.
     parser.add_argument("--folder_name", 
                         type=str, 
-                        default="uploads", 
                         help="Name of the folder to save the captured data.")
     
     # Get the duration of capture
@@ -130,22 +165,32 @@ if __name__ == "__main__":
         # Broadcast the capture message
         broadcast_message(CAPTURE_MESSAGE[args.duration])
         print(f"Capture command sent for {args.duration} seconds.")
+        
+        # Receive the images from the edge computers
+        print("Waiting for files from edge computers...")
+        receive_files()
+        
     elif args.mode == 'setup':
         # Broadcast the setup message
         broadcast_message(SETUP_MESSAGE)
-        print(f"Setup command sent.")  
+        print(f"Setup command sent.") 
+        
+        # Receive the serial numbers from the edge computers
+        print("Waiting for serial numbers from edge computers...")
+        receive_files()
+        
+        # Extract serial numbers and save to csv
+        save_serial_to_csv("serial_numbers.csv")
+         
     elif args.mode == 'reboot':
         # Send reboot message
         broadcast_message(REBOOT_MESSAGE)
         print("Reboot command sent to edge computers.")
         exit(0) 
+        
     else:
         print("Invalid mode. Use 'capture', 'setup', or 'reboot'.")
         exit(0)   
-        
-    # Receive the images from the edge computers
-    print("Waiting for files from edge computers...")
-    receive_files()
     
     # Rename uploads folder
     os.rename("uploads", args.filename)

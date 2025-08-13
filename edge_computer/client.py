@@ -110,9 +110,14 @@ def get_serial_number():
     Get the serial number of the connected D455.
     """
     
+    # Delete previous serial number file, if it exists
+    filename = CLIENT_NAME + "_serial.txt"
+    if os.path.exists(filename):
+        os.remove(filename)
+    
     try:
         print("Getting serial number...")
-        subprocess.run("rs-enumerate-devices -s >> " + CLIENT_NAME + "_serial.txt", shell=True, check=True)
+        subprocess.run("rs-enumerate-devices -s >> " + filename, shell=True, check=True)
     except subprocess.CalledProcessError as e:
         print(f"Error getting serial number: {e}")
     
@@ -148,7 +153,7 @@ def send_serial_to_host():
     """
 
     # Address to send the files
-    url = "http://" + HOST_IP + ":5000/raspi_info"
+    url = "http://" + HOST_IP + ":5000/uploads"
     
     filename = CLIENT_NAME + "_serial.txt"
     # Ensure it's a file
