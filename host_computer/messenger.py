@@ -6,20 +6,35 @@ from flask import Flask, request, jsonify
 import argparse
 
 # Initialise flask server
-app = Flask(__name__)      
-     
+app = Flask(__name__)
 
-def send_command_to_raspis(command: str, capture_duration: int):
+# Store commands
+CAPTURE_MESSAGE = {1: "CAPTURE_1s",
+                   2: "CAPTURE_2s",
+                   5: "CAPTURE_5s",
+                   10: "CAPTURE_10s",
+                   15: "CAPTURE_15s",
+                   20: "CAPTURE_20s",
+                   25: "CAPTURE_25s",
+                   30: "CAPTURE_30s",
+                   60: "CAPTURE_60s",
+                   100: "CAPTURE_100s"}
+
+SETUP_MESSAGE = "SETUP_DEVICE"
+
+REBOOT_MESSAGE = "REBOOT"   
+
+
+def broadcast_message(message: str) -> None:  
     """
-    Uses UDP to broadcast commands to Raspberry Pi 5s in the network.
+    Broadcasts a message to all devices in the network.
     
     Parameters
     ----------
-    command: str
-        The type of command to broadcast to raspberry pis.
-    capture_duration: int
-        Duration of capture.
+    message : str
+        The message to broadcast.
     """
+    
     # Broadcast address to send to all devices in the subnet
     BROADCAST_IP = "192.168.249.255"
     
@@ -29,81 +44,13 @@ def send_command_to_raspis(command: str, capture_duration: int):
     # Create a UDP socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-
-    # Store the different capture commands
-    capture_commands = ["CAPTURE_1s",
-                        "CAPTURE_2s",
-                        "CAPTURE_5s",
-                        "CAPTURE_10s",
-                        "CAPTURE_15s",
-                        "CAPTURE_20s",
-                        "CAPTURE_25s",
-                        "CAPTURE_30s",
-                        "CAPTURE_60s",
-                        "CAPTURE_100s"]
     
+    # Broadcast the message
     try:
-        if command == 'C':
-            if capture_duration == 1:
-                sock.sendto(capture_commands[0].encode(), (BROADCAST_IP, PORT))
-                print(f"Broadcast message sent: {capture_commands[0]}")
-                time.sleep(5)
+        sock.sendto(message.encode(), (BROADCAST_IP, PORT))
+        print(f"Broadcast message sent: {message}")
+        time.sleep(5)  # Wait for a short time to ensure the message is sent
                 
-            elif capture_duration == 2:
-                sock.sendto(capture_commands[1].encode(), (BROADCAST_IP, PORT))
-                print(f"Broadcast message sent: {capture_commands[1]}")
-                time.sleep(5)
-                
-            elif capture_duration == 5:
-                sock.sendto(capture_commands[2].encode(), (BROADCAST_IP, PORT))
-                print(f"Broadcast message sent: {capture_commands[2]}")
-                time.sleep(5)
-                
-            elif capture_duration == 10:
-                sock.sendto(capture_commands[3].encode(), (BROADCAST_IP, PORT))
-                print(f"Broadcast message sent: {capture_commands[3]}")
-                time.sleep(5)
-                
-            elif capture_duration == 15:
-                sock.sendto(capture_commands[4].encode(), (BROADCAST_IP, PORT))
-                print(f"Broadcast message sent: {capture_commands[4]}")
-                time.sleep(5)
-                
-            elif capture_duration == 20:
-                sock.sendto(capture_commands[5].encode(), (BROADCAST_IP, PORT))
-                print(f"Broadcast message sent: {capture_commands[5]}")
-                time.sleep(5)
-                
-            elif capture_duration == 25:
-                sock.sendto(capture_commands[6].encode(), (BROADCAST_IP, PORT))
-                print(f"Broadcast message sent: {capture_commands[6]}")
-                time.sleep(5)
-                
-            elif capture_duration == 30:
-                sock.sendto(capture_commands[7].encode(), (BROADCAST_IP, PORT))
-                print(f"Broadcast message sent: {capture_commands[7]}")
-                time.sleep(5)
-                
-            elif capture_duration == 60:
-                sock.sendto(capture_commands[8].encode(), (BROADCAST_IP, PORT))
-                print(f"Broadcast message sent: {capture_commands[8]}")
-                time.sleep(5)
-                
-            elif capture_duration == 100:
-                sock.sendto(capture_commands[9].encode(), (BROADCAST_IP, PORT))
-                print(f"Broadcast message sent: {capture_commands[9]}")
-                time.sleep(5)
-                
-            else:
-                print("Incorrect capture duration received, terminating program...")
-                exit(1)
-            
-        elif command == 'R':
-            reboot_command = "REBOOT"
-            sock.sendto(reboot_command.encode(), (BROADCAST_IP, PORT))
-            print(f"Broadcast message sent: {reboot_command}")
-            time.sleep(5)
-            
     except KeyboardInterrupt:
         print("Broadcasting stopped.")
     finally:
@@ -129,9 +76,9 @@ def upload_file():
     return jsonify({"message": f"File {file.filename} saved at {file_path}"})
 
 
-def receive_files_from_pis():
+def receive_files():
     """
-    Receives the files sent from the raspberry pi 5s. A flask server is created and the program
+    Receives the files sent from the edge computers. A flask server is created and the program
     waits for files from the pis. The server is terminated by inputting: Ctrl + C, into the 
     terminal.
     """
@@ -151,23 +98,54 @@ def receive_files_from_pis():
 
 
 if __name__ == "__main__":
-    parser=argparse.ArgumentParser(prog="Data Collector", description="message edge computer(s)")
-    parser.add_argument("mode", choices=['capture', 'reboot'])
-    parser.add_argument("--filename")
-    parser.add_argument("--duration", choices=['1', '2', '5', '10', '15', '20', '25', '30', '60', '100'])
-    args=parser.parse_args()
-    print ("My filename is ", args.filename)
-    print ("My capture duration is ", args.duration)
     
-    # Capture images
+    # Create argument parser
+    parser=argparse.ArgumentParser(prog="Messenger", 
+                                   description="Sends messages to edge computer(s) over the network.")
+    
+    # Get the mode of operation, mandatory argument
+    parser.add_argument("mode", 
+                        choices=['capture', 'setup', 'reboot'],
+                        type=str,
+                        help="Mode of operation: 'capture' to capture images, 'setup' to setup edge computers: ensure NTP and serial numbers, 'reboot' to reboot the edge computers.")
+    
+    # Get the folder name to save the captured data
+    parser.add_argument("--folder_name", 
+                        type=str, 
+                        default="uploads", 
+                        help="Name of the folder to save the captured data.")
+    
+    # Get the duration of capture
+    parser.add_argument("--duration", 
+                        choices=['1', '2', '5', '10', '15', '20', '25', '30', '60', '100'], 
+                        type=int, 
+                        default=5, 
+                        help="Duration of capture in seconds.")
+    
+    # Parse the arguments
+    args=parser.parse_args()
+    
+    # Mode handling
     if args.mode == 'capture':
-        capture_duration = int(args.duration)
-        send_command_to_raspis('C', capture_duration)
+        # Broadcast the capture message
+        broadcast_message(CAPTURE_MESSAGE[args.duration])
+        print(f"Capture command sent for {args.duration} seconds.")
+    elif args.mode == 'setup':
+        # Broadcast the setup message
+        broadcast_message(SETUP_MESSAGE)
+        print(f"Setup command sent.")  
+    elif args.mode == 'reboot':
+        # Send reboot message
+        broadcast_message(REBOOT_MESSAGE)
+        print("Reboot command sent to edge computers.")
+        exit(0) 
     else:
-        send_command_to_raspis('R', -1)
+        print("Invalid mode. Use 'capture', 'setup', or 'reboot'.")
+        exit(0)   
         
-    # Receive the images from the raspberry pis
-    receive_files_from_pis()
+    # Receive the images from the edge computers
+    print("Waiting for files from edge computers...")
+    receive_files()
     
     # Rename uploads folder
     os.rename("uploads", args.filename)
