@@ -8,7 +8,7 @@ import time
 # Set constants
 FPS = 15  # Frames per second for the camera
 CLIENT_NAME = socket.gethostname() # Get and store the name of the edge computer
-HOST_IP = "192.168.249.155" # Store IP address of the Jetson Orin Nano (host computer)
+HOST_IP = "192.168.249.155" # Store IP address of the host computer
 
 
 def create_file_directories():
@@ -34,14 +34,14 @@ def create_file_directories():
     os.makedirs(f"depth_metadata", exist_ok=True)
     
     
-def wait_for_command_from_orin() -> str:
+def wait_for_command_from_host() -> str:
     """
-    Waits for broadcast message from Jetson Orin Nano.
+    Waits for broadcast message from the host computer.
     
     Returns
     ----------
     message : str
-        The message received from the Orin Nano.
+        The message received from the host computer.
     """
     
     # Port to listen on
@@ -201,7 +201,7 @@ if __name__ == "__main__":
       
     while(True):
         
-        message = wait_for_command_from_orin()
+        message = wait_for_command_from_host()
         
         # Message handling
         if message == "SETUP_DEVICE":
