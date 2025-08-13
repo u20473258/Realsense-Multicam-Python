@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 
-class edge_computer:
+class EdgeComputer:
     """
     Class of edge computer objects. Each edge computer has an Intel RealSense D455 camera
     attached to it.
@@ -265,3 +265,79 @@ class edge_computer:
         frame_numbers.sort()
         
         return frame_numbers
+    
+    
+    def get_filename(self, data_type: str, frame_number: int, is_metadata: bool = False) -> str:
+        """
+        Function that compiles the filename into a single string using given information.
+        
+        Parameters
+        ----------
+        data_type : str
+            Data type of the file: colour or depth.
+        frame_number : int
+            Frame number of file.
+        is_metadata : bool 
+            Indicate if the file being extracted is metadata.
+        
+        Returns
+        ----------
+        framesets : list
+            A list of framesets of closely-matching frames.
+        """
+        
+        filename = self.folder_path + "/" + self.edge_computer_name + "_" + data_type
+        frame_num = str(frame_number)
+        
+        if is_metadata:
+            filename += "_metadata_" + frame_num + ".txt"
+        else:
+            if data_type == "colour":
+                filename += "_" + frame_num + ".png"
+            else:  
+                filename += "_" + frame_num + ".raw"
+        
+        return filename
+    
+    
+    def extract_ToAt_from_file(self, data_type: str, frame_number: int) -> int: 
+        """
+        Gets the Time of Arrival timestamp (ToAt) from a metadata file with the given .txt filename.
+
+        Parameters
+        ----------
+        data_type : str
+            Data type of the file: colour or depth.
+        frame_number : int
+            Frame number of file.
+        
+        Returns
+        ----------
+        ToAt : int
+            Extracted ToAt.
+        """
+        
+        filename = self.get_filename(data_type, frame_number, is_metadata=True)
+        
+        if data_type == "colour":
+            # Open file and get line 9 (ToAt is always on line 7 of metadata for colour frames)
+            with open(filename) as fp:
+                for i, line in enumerate(fp):
+                    if i == 6:
+                        # Split line using comma
+                        split = line.split(",")
+                        
+                        # The ToAt should be the second item in the list
+                        return int(split[1])
+        else:
+            # Open file and get line 7 (ToAt is always on line 9 of metadata for depth frames)
+            with open(filename) as fp:
+                for i, line in enumerate(fp):
+                    if i == 8:
+                        # Split line using comma
+                        split = line.split(",")
+                        
+                        # The ToAt should be the second item in the list
+                        return int(split[1])
+        
+        return -1
