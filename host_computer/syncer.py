@@ -182,8 +182,11 @@ class Syncer:
         
         if frameset_index < 0 or frameset_index >= len(self.framesets):
             raise IndexError("Frameset index out of range.")
-        
-        return self.framesets[frameset_index]
+        elif len(self.framesets) == 0:
+            raise ValueError("No framesets available.")
+        else:
+            # Return the frameset at the given index
+            return self.framesets[frameset_index]
     
     
     def get_median_frameset(self,) -> list:
