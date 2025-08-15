@@ -44,8 +44,7 @@ class Syncer:
         os.makedirs(self.synced_folder, exist_ok=True)
         
         # Sync the data
-        self.framesets = []
-        self.synchronise()
+        self.framesets = self.synchronise()
         
         
     def synchronise(self,):
@@ -58,8 +57,6 @@ class Syncer:
         
         Returns
         ----------
-        framesets : list
-            A list of framesets of closely-matching frames.
         """
         
         # Create an empty list to store the framesets
@@ -161,8 +158,7 @@ class Syncer:
                 if current_frame_numbers[i] >= self.edge_computers[i].get_total_num_frames(self.data_type):
                     all_edge_computers_have_frames = False
         
-        # Store the framesets in the class variable         
-        self.framesets = framesets
+        return framesets
     
     
     def get_frameset(self, frameset_index: int) -> list:
