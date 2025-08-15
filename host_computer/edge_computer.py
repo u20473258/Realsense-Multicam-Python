@@ -1,5 +1,7 @@
 import os
 import pandas as pd
+import cv2
+import numpy as np
 
 class EdgeComputer:
     """
@@ -57,7 +59,7 @@ class EdgeComputer:
                 self.folder_path == other.folder_path)
         
         
-    def __str__(self) -> str:
+    def __str__(self,) -> str:
         """
         Returns a string representation of the edge computer object.
         
@@ -69,7 +71,7 @@ class EdgeComputer:
         return f"Edge Computer: {self.edge_computer_name}, Serial Number: {self.serial_number}, Folder Path: {self.folder_path}"
     
     
-    def __repr__(self) -> str:
+    def __repr__(self,) -> str:
         """
         Returns a string representation of the edge computer object for debugging.
         
@@ -81,11 +83,11 @@ class EdgeComputer:
         return f"edge_computer(edge_computer_name={self.edge_computer_name}, serial_number={self.serial_number}, folder_path={self.folder_path})"
     
     
-    def get_edge_computer_name(self) -> str:
+    def get_edge_computer_name(self,) -> str:
         return self.edge_computer_name
     
     
-    def get_serial_number(self) -> int:
+    def get_serial_number(self,) -> int:
         return self.serial_number
     
     
@@ -107,7 +109,7 @@ class EdgeComputer:
         return self.depth_frame_numbers[frame_number_index] if data_type == "depth" else self.colour_frame_numbers[frame_number_index]
     
     
-    def load_cam_intrinsics(self) -> list:
+    def load_cam_intrinsics(self,) -> tuple:
         """
         Loads the camera instrinsics from a .txt file.
         
@@ -129,7 +131,7 @@ class EdgeComputer:
             else:
                 row_num += 1
                         
-        return [ df.loc[row_num, "fx"], df.loc[row_num, "fy"], df.loc[row_num, "ppx"], df.loc[row_num, "ppy"] ]  
+        return ( df.loc[row_num, "fx"], df.loc[row_num, "fy"], df.loc[row_num, "ppx"], df.loc[row_num, "ppy"] ) 
     
     
     def calculate_total_num_frames(self, data_type: str) -> int:
@@ -345,3 +347,25 @@ class EdgeComputer:
                         return int(split[1])
         
         return -1
+    
+    
+    def load_image(self, frame_number: int, grayscale: bool = False):
+        """
+        Loads an image from the edge computer's folder path. Converts the image to grayscale if specified.
+        
+        Parameters
+        ----------
+        frame_number : int
+            The frame number of the image to load.
+        grayscale : bool
+            If True, the image will be loaded in grayscale. Default is False.
+        
+        Returns
+        ----------
+        image : any
+            The loaded image.
+        """
+        
+        filename = self.get_filename("colour", frame_number)
+        
+        return cv2.imread(filename, cv2.IMREAD_GRAYSCALE if grayscale else cv2.IMREAD_COLOR)
